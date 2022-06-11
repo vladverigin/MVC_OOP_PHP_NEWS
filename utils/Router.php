@@ -2,6 +2,8 @@
 
 namespace utils;
 
+use Exception;
+
 /**
  * class to handle requests and move them to correct controller
  */
@@ -11,7 +13,8 @@ class Router
     private string $uri;
     private string $path;
     private string $args;
-    private array $argsArray = [];
+    private array $argsNamesArray = [];
+    private array $argsValuesArray = [];
 
     public function __construct()
     {
@@ -21,6 +24,7 @@ class Router
     /**
      * Here we start do staff wth our routes and try to find controller for them from config file
      * @return void
+     * @throws Exception
      */
     public function run()
     {
@@ -32,26 +36,36 @@ class Router
     /**
      * parse address info for our needs.
      * @return void
+     * @throws Exception
      */
-    protected function parseUri()
+    private function parseUri()
     {
         $this->uri = trim($_SERVER['REQUEST_URI'],'/');
         $this->path = parse_url($this->uri,PHP_URL_PATH);
         $this->args = parse_url($this->uri,PHP_URL_QUERY) ?? "";
         if($this->args != ""){
             $argsParsed = explode('&',$this->args);
+            $argsValuesArray = [];
             foreach ($argsParsed as $k =>$arg){
-                $argsParsed[$k] = explode("=",$arg)[0];
+                $parsed = explode("=",$arg);
+                $argsParsed[$k] = $parsed[0];
+                if($parsed[1] != ""){
+                    $argsValuesArray[] = $parsed[1];
+                } else {
+                    throw new Exception('Some args are empty');
+                }
             }
-            $this->argsArray = $argsParsed;
+            $this->argsValuesArray = $argsValuesArray;
+            $this->argsNamesArray = $argsParsed;
         }
     }
 
     /**
      * Here we try to detect where we go, which one controller need
      * @return void
+     * @throws Exception
      */
-    protected function handleRoute()
+    private function handleRoute()
     {
         $cntrlValue = [];
         if($this->uri==""){
@@ -71,9 +85,9 @@ class Router
                                 $tmplArgs = parse_url($uriTemplate,PHP_URL_QUERY);
                                 if($tmplArgs != ""){
                                     $tmplArgsParsed = explode("&",$tmplArgs);
-                                    if(count($tmplArgsParsed) == count($this->argsArray)){
+                                    if(count($tmplArgsParsed) == count($this->argsNamesArray)){
                                         foreach ($tmplArgsParsed as $tak=> $tmplArg){
-                                            if($tmplArg != $this->argsArray[$tak]){
+                                            if($tmplArg != $this->argsNamesArray[$tak]){
                                                 break;
                                             } else {
                                                 if($tak == count($tmplArgsParsed)-1){
@@ -84,7 +98,7 @@ class Router
                                         }
                                     }
                                 } else {
-                                    if(count($this->argsArray) == 0){
+                                    if(count($this->argsNamesArray) == 0){
                                         $cntrlValue = $cntrlInfo;
                                         break 2;
                                     }
@@ -98,13 +112,25 @@ class Router
         if(!$cntrlValue){
             $cntrlValue = $this->routes['notFoundRoute'];
         }
-        print_r($cntrlValue);
-    }
-
-    /**
-     * @return void
-     */
-    protected function handleNotFound(){
-
+        $cntrlValueParsed = explode('/',$cntrlValue);
+        if(count($cntrlValueParsed) == 2){
+            $controllerName = $cntrlValueParsed[0];
+            $methodName = $cntrlValueParsed[1];
+            if(class_exists('\controllers\\'.$controllerName)){
+                if(method_exists('\controllers\\'.$controllerName,$methodName)){
+                    echo " Exist ";
+                    $controllerClass = '\controllers\\'.$controllerName;
+                    $controller = new $controllerClass;
+                    $controller->$methodName(...$this->argsValuesArray);
+                } else {
+                    throw new Exception("Controller's method from configuration for route $cntrlValue does not exist ");
+                }
+            } else {
+                throw new Exception("Controller from configuration for route $cntrlValue does not exist ");
+            }
+            echo $controllerName." ".$methodName;
+        } else {
+            throw new Exception("Bad configuration for routes ".$cntrlValue);
+        }
     }
 }

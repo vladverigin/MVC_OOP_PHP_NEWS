@@ -10,5 +10,5 @@ return [
         'view?id' => 'News/getOne'
     ],
     'indexRoute' => 'Home/show',
-    'notFoundRoute' => 'Home/notFoundPage',
+    'notFoundRoute' => 'Home/notFound',
 ];
