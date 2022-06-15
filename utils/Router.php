@@ -41,7 +41,7 @@ class Router
     private function parseUri()
     {
         $this->uri = trim($_SERVER['REQUEST_URI'],'/');
-        $this->path = parse_url($this->uri,PHP_URL_PATH);
+        $this->path = parse_url($this->uri,PHP_URL_PATH) ?? "";
         $this->args = parse_url($this->uri,PHP_URL_QUERY) ?? "";
         if($this->args != ""){
             $argsParsed = explode('&',$this->args);
@@ -118,7 +118,6 @@ class Router
             $methodName = $cntrlValueParsed[1];
             if(class_exists('\controllers\\'.$controllerName)){
                 if(method_exists('\controllers\\'.$controllerName,$methodName)){
-                    echo " Exist ";
                     $controllerClass = '\controllers\\'.$controllerName;
                     $controller = new $controllerClass;
                     $controller->$methodName(...$this->argsValuesArray);
@@ -128,9 +127,9 @@ class Router
             } else {
                 throw new Exception("Controller from configuration for route $cntrlValue does not exist ");
             }
-            echo $controllerName." ".$methodName;
+//            echo " ".$controllerName." ".$methodName;
         } else {
-            throw new Exception("Bad configuration for routes ".$cntrlValue);
+            throw new Exception("Bad configuration for route".$cntrlValue);
         }
     }
 }

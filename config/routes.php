@@ -7,7 +7,7 @@ return [
     'customRoutes' => [
         'news' => 'News/show',
         'news?page' => 'News/showPage',
-        'view?id' => 'News/getOne'
+        'view?id' => 'News/showOne'
     ],
     'indexRoute' => 'Home/show',
     'notFoundRoute' => 'Home/notFound',
